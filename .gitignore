@@ -31,6 +31,7 @@ coverage.xml
 ## don't commit local config override files
 config_local.py
 _vendor-*
+vendor
 
 ## bin
 bin/

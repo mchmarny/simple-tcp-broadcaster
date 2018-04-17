@@ -5,48 +5,32 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strings"
-	"unicode"
 )
 
-func reverse(s string) string {
-	runes := []rune(s)
-	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
-		runes[i], runes[j] = runes[j], runes[i]
-	}
-	return string(runes)
-}
+const (
+	responseMsgTemplate = "Hi there, I got your message: %s"
+	errorTemplate       = "Closing client %d connection returned error: %v\n"
+	successTemplate     = "Client %d\n received: %s\n returned: %s\n"
+)
 
-func swapCase(s string) string {
-	return strings.Map(func(r rune) rune {
-		switch {
-		case unicode.IsLower(r):
-			return unicode.ToUpper(r)
-		case unicode.IsUpper(r):
-			return unicode.ToLower(r)
+func handleConnection(c net.Conn, i int) {
+	defer func() {
+		if err := c.Close(); err != nil {
+			log.Printf(errorTemplate, i, err)
 		}
-		return r
-	}, s)
-}
+	}()
 
-func handleServerConnection(c net.Conn, i int) {
-	for {
-		// scan message
-		scanner := bufio.NewScanner(c)
-		for scanner.Scan() {
-			msg := scanner.Text()
-			log.Printf("Client %v sends: %v", i, msg)
-			msgNew := swapCase(reverse((msg)))
-			c.Write([]byte(msgNew + "\n"))
-			log.Printf("Client %v receives: %v", i, msgNew)
-			fmt.Println("---")
+	scanner := bufio.NewScanner(c)
+	for scanner.Scan() {
+		msg := scanner.Text()
+		msgNew := fmt.Sprintf(responseMsgTemplate, msg)
+		if _, err := c.Write([]byte(msgNew + "\n")); err != nil {
+			log.Printf("Client %d has closed writer: %v\n", i, err)
+			break
 		}
-		if errRead := scanner.Err(); errRead != nil {
-			log.Printf("Client %v disconnected...", i)
-			fmt.Println("---")
-			return
-		}
+		log.Printf(successTemplate, i, msg, msgNew)
 	}
+	log.Printf("Client %d disconnected...\n", i)
 }
 
 // StartServer start TCP server on a given port
@@ -63,15 +47,12 @@ func StartServer(port int) error {
 	i := 0
 	for {
 		// accept connection on port
-		c, err := ln.Accept()
+		conn, err := ln.Accept()
 		if err != nil {
 			log.Printf("Connection error: %v", err)
 		}
 		i++
-		log.Printf("Client %v connected...", i)
-		fmt.Println("---")
-		// handle the connection
-		go handleServerConnection(c, i)
+		log.Printf("Client connected: %d", i)
+		go handleConnection(conn, i)
 	}
-
 }

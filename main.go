@@ -3,6 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
+	"os/signal"
+	"syscall"
 
 	"os"
 
@@ -14,7 +17,13 @@ import (
 const (
 	appName    = "simple"
 	appVersion = "0.1.0"
+
+	undefinedCLIMode cliMode = 0
+	clientCLIMode    cliMode = 1
+	serverCLIMode    cliMode = 2
 )
+
+type cliMode int
 
 var (
 	serverCommand = cli.Command{
@@ -91,6 +100,8 @@ func startServer(c *cli.Context) error {
 		return errors.New("Server port must be above 1024")
 	}
 
+	go handleConsoleSignal(serverCLIMode)
+
 	return server.StartServer(port)
 }
 
@@ -104,7 +115,24 @@ func startClient(c *cli.Context) error {
 		return errors.New("Server port must be above 1024")
 	}
 
+	go handleConsoleSignal(clientCLIMode)
+
 	serverAddress := fmt.Sprintf("%s:%d", address, port)
 
 	return client.StartClient(serverAddress)
+}
+
+// handleConsoleSignal Waits for SIGINT and SIGTERM (HIT CTRL-C)
+func handleConsoleSignal(mode cliMode) {
+	ch := make(chan os.Signal)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+	log.Println(<-ch)
+	if mode == clientCLIMode {
+
+	} else if mode == serverCLIMode {
+		server.StopServer()
+	} else {
+		log.Println("Error, CLI mode not set")
+	}
+	os.Exit(0)
 }

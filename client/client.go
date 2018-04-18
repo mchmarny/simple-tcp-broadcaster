@@ -6,6 +6,8 @@ import (
 	"log"
 	"net"
 	"os"
+
+	"github.com/mchmarny/simple-server/types"
 )
 
 // StartClient starts a client and connects to server
@@ -19,16 +21,19 @@ func StartClient(serverAddress string) error {
 	log.Printf("Connected to server: %s", serverAddress)
 
 	for {
-
-		// send
 		sendScanner := bufio.NewScanner(os.Stdin)
 		for sendScanner.Scan() {
-			text := sendScanner.Text()
-			_, err := fmt.Fprintf(c, text+"\n")
+
+			req := types.NewRequest(c.LocalAddr().String())
+			req.Data = sendScanner.Bytes()
+
+			_, err := fmt.Fprint(c, req)
+
+			// _, err := fmt.Fprintf(c, text+"\n")
 			if err != nil {
 				return err
 			}
-			log.Printf("Server received: %s", text)
+			log.Printf("Server received: %s", req.Data)
 			break
 		}
 

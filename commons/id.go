@@ -1,4 +1,4 @@
-package utils
+package commons
 
 import (
 	"log"
@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// GetUUIDv4 generates string formatted UUIDv4
 func GetUUIDv4() string {
 	id, err := uuid.NewRandom()
 	if err != nil {

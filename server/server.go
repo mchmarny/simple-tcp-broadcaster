@@ -1,74 +1,94 @@
 package server
 
 import (
-	"bufio"
 	"fmt"
 	"log"
 	"net"
-	"time"
+
+	"github.com/mchmarny/simple-server/commons"
 )
 
 var (
-	// timeout for silent connecitons
-	timeoutDuration = 25 * time.Minute
+	manager *ClientManager
 )
 
-// StopServer gracefully shuts down server
-func StopServer() {
-	log.Println("Server stopped")
-}
-
-func handleConnection(c net.Conn) {
-
-	defer func() {
-		if err := c.Close(); err != nil {
-			log.Printf("Error closing client connection: %v\n", err)
-		}
-	}()
-
-	scanner := bufio.NewScanner(c)
-	for scanner.Scan() {
-		// Set timeout, err if received after deadline
-		c.SetReadDeadline(time.Now().Add(timeoutDuration))
-
-		msg := scanner.Text()
-		msgNew := fmt.Sprintf("Hi there, I got your message: %s", msg)
-
-		if _, err := c.Write([]byte(msgNew + "\n")); err != nil {
-			log.Printf("Client closed writer: %v\n", err)
-			break
-		}
-
-		log.Printf("Client\n received: %s\n returned: %s\n", msg, msgNew)
-
-	}
-	log.Printf("Client disconnected\n")
-}
-
-// StartServer start TCP server on a given port
-func StartServer(port int) error {
-
-	log.Println("Launching sever...")
-	// listen on all interfaces
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+// StartServerMode starts TCP server on specified port
+func StartServerMode(port int) error {
+	log.Println("Starting server...")
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return err
 	}
-
-	defer func() {
-		if err := ln.Close(); err != nil {
-			log.Printf("Error shutting down server: %v\n", err)
-		}
-	}()
-
-	log.Printf("Server launched on port:%d, waiting for clients...\n", port)
-
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			log.Printf("Client connection error: %v", err)
-		}
-		go handleConnection(conn)
+	manager = &ClientManager{
+		clients:    make(map[*commons.Connection]bool),
+		broadcast:  make(chan []byte),
+		register:   make(chan *commons.Connection),
+		unregister: make(chan *commons.Connection),
 	}
 
+	go manager.Start()
+
+	for {
+		conn, err := listener.Accept()
+		if err != nil {
+			log.Fatalf("Client connect error: %v", err)
+			continue
+		}
+		client := &commons.Connection{
+			Socket: conn,
+			Data:   make(chan []byte),
+		}
+		manager.register <- client
+		go manager.Receive(client)
+		go manager.Send(client)
+	}
 }
+
+// 	sc := make(chan bool)
+// 	deadline := time.After(conn.IdleTimeout)
+// 	for {
+// 		go func(s chan bool) {
+// 			s <- scanr.Scan()
+// 		}(sc)
+// 		select {
+// 		case <-deadline:
+// 			return nil
+// 		case scanned := <-sc:
+// 			if !scanned {
+// 				if err := scanr.Err(); err != nil {
+// 					return err
+// 				}
+// 				return nil
+// 			}
+// 			val := scanr.Text()
+// 			log.Printf("Client said: %s", val)
+// 			w.WriteString(strings.ToUpper(val) + "\n")
+// 			w.Flush()
+// 			deadline = time.After(conn.IdleTimeout)
+// 		}
+// 	}
+// }
+
+// func (srv *Server) deleteConn(conn *conn) {
+// 	defer srv.mu.Unlock()
+// 	srv.mu.Lock()
+// 	delete(srv.conns, conn)
+// }
+
+// func (srv *Server) Shutdown() {
+// 	// should be guarded by mu
+// 	srv.inShutdown = true
+// 	log.Println("shutting down...")
+// 	srv.listener.Close()
+// 	ticker := time.NewTicker(500 * time.Millisecond)
+// 	defer ticker.Stop()
+// 	for {
+// 		select {
+// 		case <-ticker.C:
+// 			log.Printf("waiting on %v connections", len(srv.conns))
+// 		}
+// 		if len(srv.conns) == 0 {
+// 			return
+// 		}
+// 	}
+// }

@@ -1,17 +1,15 @@
-package types
+package commons
 
 import (
 	"time"
-
-	"github.com/mchmarny/simple-server/utils"
 )
 
 // NewRequest creates a new reqquest for this client ID
 func NewRequest(clientID string) SimpleRequest {
 	return SimpleRequest{
-		ID:        utils.GetUUIDv4(),
+		ID:        GetUUIDv4(),
 		CreatedAt: time.Now(),
-		Client:    clientID,
+		ClientID:  clientID,
 	}
 }
 
@@ -19,6 +17,6 @@ func NewRequest(clientID string) SimpleRequest {
 type SimpleRequest struct {
 	ID        string
 	CreatedAt time.Time
-	Client    string
+	ClientID  string
 	Data      []byte
 }

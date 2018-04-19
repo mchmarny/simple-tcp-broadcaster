@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	// NotSetResponseCode is default
-	NotSetResponseCode ResponseCode = 0
+	// UndefinedResponseCode is default
+	UndefinedResponseCode ResponseCode = 0
 	// SuccessResponseCode when success
 	SuccessResponseCode ResponseCode = 1
 	// ErrorResponseCode when error
@@ -16,20 +16,20 @@ const (
 // ResponseCode represents server response code
 type ResponseCode int
 
-// NewResponse creates a new response for specific request ID
-func NewResponse(requestID string) *SimpleResponse {
-	return &SimpleResponse{
+// NewMessage creates a new response for specific request ID
+func NewMessage(sourceID string) *SimpleMessage {
+	return &SimpleMessage{
 		ID:        GetUUIDv4(),
-		RequestID: requestID,
+		Source:    sourceID,
 		CreatedAt: time.Now(),
-		Status:    NotSetResponseCode,
+		Status:    UndefinedResponseCode,
 	}
 }
 
-// SimpleResponse represents server response to simple request
-type SimpleResponse struct {
+// SimpleMessage represents server response to simple request
+type SimpleMessage struct {
 	ID        string
-	RequestID string
+	Source    string
 	CreatedAt time.Time
 	Status    ResponseCode
 	Data      []byte

@@ -13,7 +13,7 @@ const (
 // ClientManager manages server slide client connection
 type ClientManager struct {
 	clients    map[*commons.Connection]bool
-	broadcast  chan []byte
+	broadcast  chan *commons.SimpleMessage
 	register   chan *commons.Connection
 	unregister chan *commons.Connection
 }
@@ -24,11 +24,11 @@ func (m *ClientManager) Start() {
 		select {
 		case conn := <-m.register:
 			m.clients[conn] = true
-			log.Printf("New connection: %s", conn.GetID())
+			log.Printf("New connection: %s", conn.Socket.RemoteAddr().String())
 		case conn := <-m.unregister:
 			if _, ok := m.clients[conn]; ok {
-				connID := conn.GetID()
-				close(conn.Data)
+				connID := conn.Socket.RemoteAddr().String()
+				close(conn.Message)
 				delete(m.clients, conn)
 				log.Printf("Connection terminated: %s", connID)
 			}
@@ -36,9 +36,9 @@ func (m *ClientManager) Start() {
 			log.Println("Broadcasting...")
 			for conn := range m.clients {
 				select {
-				case conn.Data <- msg:
+				case conn.Message <- msg:
 				default:
-					close(conn.Data)
+					close(conn.Message)
 					delete(m.clients, conn)
 				}
 			}
@@ -49,17 +49,15 @@ func (m *ClientManager) Start() {
 // Receive processes manager connecitons
 func (m *ClientManager) Receive(c *commons.Connection) {
 	for {
-		msg := make([]byte, maxBuffer)
-		length, err := c.Socket.Read(msg)
+		msg := &commons.SimpleMessage{}
+		err := c.Decoder.Decode(msg)
 		if err != nil {
 			m.unregister <- c
 			c.Socket.Close()
 			break
 		}
-		if length > 0 {
-			log.Println("Client message: " + string(msg))
-			m.broadcast <- msg
-		}
+		log.Printf("Client message: %+v", msg)
+		m.broadcast <- msg
 	}
 }
 
@@ -68,11 +66,11 @@ func (m *ClientManager) Send(c *commons.Connection) {
 	defer c.Socket.Close()
 	for {
 		select {
-		case msg, ok := <-c.Data:
+		case msg, ok := <-c.Message:
 			if !ok {
 				return
 			}
-			c.Socket.Write(msg)
+			c.Encoder.Encode(msg)
 		}
 	}
 }

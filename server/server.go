@@ -21,7 +21,7 @@ func StartServerMode(port int) error {
 	}
 	manager = &ClientManager{
 		clients:    make(map[*commons.Connection]bool),
-		broadcast:  make(chan []byte),
+		broadcast:  make(chan *commons.SimpleMessage),
 		register:   make(chan *commons.Connection),
 		unregister: make(chan *commons.Connection),
 	}
@@ -34,13 +34,11 @@ func StartServerMode(port int) error {
 			log.Fatalf("Client connect error: %v", err)
 			continue
 		}
-		client := &commons.Connection{
-			Socket: conn,
-			Data:   make(chan []byte),
-		}
-		manager.register <- client
-		go manager.Receive(client)
-		go manager.Send(client)
+
+		c := commons.NewConnection(conn)
+		manager.register <- c
+		go manager.Receive(c)
+		go manager.Send(c)
 	}
 }
 

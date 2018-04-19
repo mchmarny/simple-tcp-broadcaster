@@ -20,13 +20,14 @@ func StartClient(serverAddress string) error {
 
 	log.Printf("Connected to server: %s", conn.RemoteAddr())
 
-	client := &commons.Connection{Socket: conn}
-
+	client := commons.NewConnection(conn)
 	go client.Read()
 
 	for {
 		message, _ := bufio.NewReader(os.Stdin).ReadString('\n')
-		client.Write(message)
+		msg := commons.NewMessage(client.Socket.LocalAddr().String())
+		msg.Data = []byte(message)
+		client.Write(msg)
 	}
 
 }

@@ -1,46 +1,47 @@
 package commons
 
 import (
+	"encoding/gob"
 	"log"
 	"net"
-	"strings"
-	"time"
 )
 
 // Connection represents common client
 type Connection struct {
-	Socket        net.Conn
-	Data          chan []byte
-	IdleTimeout   time.Duration
-	MaxReadBuffer int64
+	Socket  net.Conn
+	Message chan *SimpleMessage
+	//IdleTimeout   time.Duration
+	//MaxReadBuffer int64
+	Encoder *gob.Encoder
+	Decoder *gob.Decoder
 }
 
-// GetID returns connectionID
-func (c *Connection) GetID() string {
-	if c.Socket != nil {
-		return c.Socket.RemoteAddr().String()
-	} else {
-		return ""
+//NewConnection sets all the necessary defaults
+func NewConnection(conn net.Conn) *Connection {
+	return &Connection{
+		Socket:  conn,
+		Message: make(chan *SimpleMessage),
+		Encoder: gob.NewEncoder(conn),
+		Decoder: gob.NewDecoder(conn),
 	}
 }
 
-func (c *Connection) Write(msg string) {
-	if msg != "" {
-		c.Socket.Write([]byte(strings.TrimRight(msg, "\n")))
+func (c *Connection) Write(msg *SimpleMessage) {
+	if msg != nil {
+		c.Encoder.Encode(msg)
 	}
 }
 
 // Read processes client messages
 func (c *Connection) Read() {
 	for {
-		msg := make([]byte, 4096)
-		length, err := c.Socket.Read(msg)
+
+		msg := &SimpleMessage{}
+		err := c.Decoder.Decode(msg)
 		if err != nil {
 			c.Socket.Close()
 			break
 		}
-		if length > 0 {
-			log.Printf("Client message: %s\n", msg)
-		}
+		log.Printf("Client message: %+v", msg)
 	}
 }

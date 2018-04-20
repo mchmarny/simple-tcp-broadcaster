@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	defaultClientTimeout = 60
-	inspectionPeriod     = 10
+	defaultClientTimeout  = 60
+	inspectionPeriod      = 10
+	keepAliveEverySeconds = 10
 
 	// UndefinedAgentMode is default
 	UndefinedAgentMode AgentMode = 0
@@ -43,8 +44,20 @@ func NewSeverAgent(conn net.Conn) *Agent {
 }
 
 // NewClientAgent creates client connection
-func NewClientAgent(conn net.Conn) *Agent {
-	return newAgent(conn, ClientAgentMode)
+func NewClientAgent(serverAddress string) (agent *Agent, err error) {
+	c, e := net.Dial("tcp", serverAddress)
+	if e != nil {
+		log.Fatalf("Error on dial: %v", e)
+		return nil, err
+	}
+
+	log.Printf("Connected to server %s from %s", c.RemoteAddr(), c.LocalAddr())
+
+	tcpConn := c.(*net.TCPConn)
+	tcpConn.SetKeepAlive(true)
+	tcpConn.SetKeepAlivePeriod(time.Second * time.Duration(keepAliveEverySeconds))
+
+	return newAgent(c, ClientAgentMode), nil
 }
 
 //newAgent sets all the necessary defaults
@@ -96,6 +109,13 @@ func (c *Agent) GetRemoteServerID() string {
 func (c *Agent) updateDeadline() {
 	idleDeadline := time.Now().Add(c.IdleTimeout)
 	c.Socket.SetDeadline(idleDeadline)
+}
+
+// Stop closes the connection
+func (c *Agent) Stop() error {
+	nowish := time.Now().Add(time.Millisecond * 10)
+	c.Socket.SetDeadline(nowish)
+	return c.Socket.Close()
 }
 
 func (c *Agent) Write(msg *SimpleMessage) error {

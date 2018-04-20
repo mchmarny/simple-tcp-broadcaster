@@ -3,36 +3,33 @@ package client
 import (
 	"bufio"
 	"log"
-	"net"
 	"os"
-	"time"
 
 	"github.com/mchmarny/simple-tcp-broadcaster/commons"
 )
 
-const (
-	keepAliveEverySeconds = 10
+var (
+	agent *commons.Agent
 )
+
+// StopClient stops client
+func StopClient() error {
+	if agent != nil {
+		return agent.Stop()
+	}
+	return nil
+}
 
 // StartClient starts a client and connects to server
 func StartClient(serverAddress string) error {
 
-	conn, err := net.Dial("tcp", serverAddress)
+	var err error
+	agent, err = commons.NewClientAgent(serverAddress)
 	if err != nil {
-		log.Fatalf("Error on dial: %v", err)
 		return err
 	}
 
-	log.Printf("Connected to server %s from %s",
-		conn.RemoteAddr(), conn.LocalAddr())
-
-	tcpConn := conn.(*net.TCPConn)
-	tcpConn.SetKeepAlive(true)
-	tcpConn.SetKeepAlivePeriod(time.Second * time.Duration(keepAliveEverySeconds))
-
-	agent := commons.NewClientAgent(conn)
 	log.Printf("Client ID: %s", agent.GetLocalClientID())
-
 	go agent.Read()
 
 	for {

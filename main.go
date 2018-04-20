@@ -135,7 +135,7 @@ func handleConsoleSignal(mode cliMode) {
 	log.Println(<-ch)
 	if mode == clientCLIMode {
 		log.Println("Shutting down client...")
-		// TODO: what on client?
+		client.StopClient()
 	} else if mode == serverCLIMode {
 		log.Println("Shutting down server...")
 		server.StopServer()

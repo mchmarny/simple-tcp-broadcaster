@@ -21,6 +21,8 @@ const (
 	undefinedCLIMode cliMode = 0
 	clientCLIMode    cliMode = 1
 	serverCLIMode    cliMode = 2
+
+	defaultServerPort = 5050
 )
 
 type cliMode int
@@ -39,6 +41,7 @@ var (
 					cli.IntFlag{
 						Name:  "port",
 						Usage: "Server port on which the server should listen",
+						Value: defaultServerPort,
 					},
 				},
 			},
@@ -58,10 +61,12 @@ var (
 					cli.StringFlag{
 						Name:  "address",
 						Usage: "Server address",
+						Value: "",
 					},
 					cli.IntFlag{
 						Name:  "port",
 						Usage: "Server port on which the server listens",
+						Value: defaultServerPort,
 					},
 				},
 			},

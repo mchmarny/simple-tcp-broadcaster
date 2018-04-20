@@ -4,27 +4,28 @@ import (
 	"log"
 	"sync"
 
-	"github.com/mchmarny/simple-server/commons"
+	"github.com/mchmarny/simple-tcp-broadcaster/commons"
 )
 
 // ClientManager manages server slide client connection
 type ClientManager struct {
-	clients    map[*commons.Connection]bool
+	port       int
+	clients    map[*commons.Agent]bool
 	broadcast  chan *commons.SimpleMessage
-	register   chan *commons.Connection
-	unregister chan *commons.Connection
+	register   chan *commons.Agent
+	unregister chan *commons.Agent
 	mutex      *sync.Mutex
 	stopping   bool
 }
 
-func (m *ClientManager) deleteConn(conn *commons.Connection) {
+func (m *ClientManager) deleteConn(conn *commons.Agent) {
 	defer m.mutex.Unlock()
 	m.mutex.Lock()
 	close(conn.Message)
 	delete(m.clients, conn)
 }
 
-func (m *ClientManager) addConn(conn *commons.Connection) {
+func (m *ClientManager) addConn(conn *commons.Agent) {
 	if !m.stopping {
 		defer m.mutex.Unlock()
 		m.mutex.Lock()
@@ -38,7 +39,7 @@ func (m *ClientManager) Stop() {
 	m.mutex.Lock()
 	m.stopping = true
 	for c := range m.clients {
-		log.Printf("Disconnecting: %s", c.Socket.RemoteAddr().String())
+		log.Printf("Disconnecting: %s", c.GetRemoteClientID())
 		c.Socket.Close()
 		c.Socket = nil
 	}
@@ -49,13 +50,13 @@ func (m *ClientManager) Start() {
 	m.stopping = false
 	for {
 		select {
-		case conn := <-m.register:
-			m.addConn(conn)
-			log.Printf("New connection: %s", conn.Socket.RemoteAddr().String())
-		case conn := <-m.unregister:
-			if _, ok := m.clients[conn]; ok {
-				connID := conn.Socket.RemoteAddr().String()
-				m.deleteConn(conn)
+		case c := <-m.register:
+			m.addConn(c)
+			log.Printf("New connection: %s", c.GetRemoteClientID())
+		case c := <-m.unregister:
+			if _, ok := m.clients[c]; ok {
+				connID := c.GetRemoteClientID()
+				m.deleteConn(c)
 				log.Printf("Connection terminated: %s", connID)
 			}
 		case msg := <-m.broadcast:
@@ -72,7 +73,7 @@ func (m *ClientManager) Start() {
 }
 
 // Receive processes manager connecitons
-func (m *ClientManager) Receive(c *commons.Connection) {
+func (m *ClientManager) Receive(c *commons.Agent) {
 	for {
 		msg := &commons.SimpleMessage{}
 		err := c.Decoder.Decode(msg)
@@ -81,13 +82,13 @@ func (m *ClientManager) Receive(c *commons.Connection) {
 			c.Socket.Close()
 			break
 		}
-		log.Printf("Client message: %+v", msg)
+		log.Printf("Client %s message: %+v", c.GetRemoteClientID(), msg)
 		m.broadcast <- msg
 	}
 }
 
 // Send sends data back to the client
-func (m *ClientManager) Send(c *commons.Connection) {
+func (m *ClientManager) Send(c *commons.Agent) {
 	defer c.Socket.Close()
 	for {
 		select {

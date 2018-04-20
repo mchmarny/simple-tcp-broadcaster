@@ -17,10 +17,10 @@ const (
 type ResponseCode int
 
 // NewMessage creates a new response for specific request ID
-func NewMessage(sourceID string) *SimpleMessage {
+func NewMessage(clientID string) *SimpleMessage {
 	return &SimpleMessage{
 		ID:        GetUUIDv4(),
-		Source:    sourceID,
+		Source:    clientID,
 		CreatedAt: time.Now(),
 		Status:    UndefinedResponseCode,
 	}

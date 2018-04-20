@@ -1,7 +1,9 @@
 package commons
 
 import (
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -13,4 +15,11 @@ func GetUUIDv4() string {
 		log.Fatalf("Error while getting id: %v\n", err)
 	}
 	return id.String()
+}
+
+// ParseID combines parts into id
+func ParseID(prefix, val string) string {
+	val = strings.Replace(val, ".", "-", -1)
+	val = strings.Replace(val, ":", "-", -1)
+	return fmt.Sprintf("%s-%s", prefix, val)
 }

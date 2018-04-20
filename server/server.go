@@ -6,7 +6,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/mchmarny/simple-server/commons"
+	"github.com/mchmarny/simple-tcp-broadcaster/commons"
 )
 
 var (
@@ -20,16 +20,18 @@ func StopServer() {
 
 // StartServer starts TCP server on specified port
 func StartServer(port int) error {
-	log.Println("Starting server...")
+	log.Printf("Starting server on port:%d ...", port)
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return err
 	}
+
 	manager = &ClientManager{
-		clients:    make(map[*commons.Connection]bool),
+		port:       port,
+		clients:    make(map[*commons.Agent]bool),
 		broadcast:  make(chan *commons.SimpleMessage),
-		register:   make(chan *commons.Connection),
-		unregister: make(chan *commons.Connection),
+		register:   make(chan *commons.Agent),
+		unregister: make(chan *commons.Agent),
 		mutex:      &sync.Mutex{},
 	}
 
@@ -38,37 +40,13 @@ func StartServer(port int) error {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Fatalf("Client connect error: %v", err)
+			log.Fatalf("Connect error: %v", err)
 			continue
 		}
 
-		c := commons.NewSeverConnection(conn)
+		c := commons.NewSeverAgent(conn)
 		manager.register <- c
 		go manager.Receive(c)
 		go manager.Send(c)
 	}
 }
-
-// func (srv *Server) deleteConn(conn *conn) {
-// 	defer srv.mu.Unlock()
-// 	srv.mu.Lock()
-// 	delete(srv.conns, conn)
-// }
-
-// func (srv *Server) Shutdown() {
-// 	// should be guarded by mu
-// 	srv.inShutdown = true
-// 	log.Println("shutting down...")
-// 	srv.listener.Close()
-// 	ticker := time.NewTicker(500 * time.Millisecond)
-// 	defer ticker.Stop()
-// 	for {
-// 		select {
-// 		case <-ticker.C:
-// 			log.Printf("waiting on %v connections", len(srv.conns))
-// 		}
-// 		if len(srv.conns) == 0 {
-// 			return
-// 		}
-// 	}
-// }

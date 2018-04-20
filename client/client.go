@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/mchmarny/simple-server/commons"
+	"github.com/mchmarny/simple-tcp-broadcaster/commons"
 )
 
 const (
@@ -23,21 +23,23 @@ func StartClient(serverAddress string) error {
 		return err
 	}
 
-	log.Printf("Connected to server: %s", conn.RemoteAddr())
+	log.Printf("Connected to server %s from %s",
+		conn.RemoteAddr(), conn.LocalAddr())
 
 	tcpConn := conn.(*net.TCPConn)
 	tcpConn.SetKeepAlive(true)
 	tcpConn.SetKeepAlivePeriod(time.Second * time.Duration(keepAliveEverySeconds))
 
-	client := commons.NewClientConnection(conn)
+	agent := commons.NewClientAgent(conn)
+	log.Printf("Client ID: %s", agent.GetLocalClientID())
 
-	go client.Read()
+	go agent.Read()
 
 	for {
 		message, _ := bufio.NewReader(os.Stdin).ReadString('\n')
-		msg := commons.NewMessage(client.Socket.LocalAddr().String())
+		msg := commons.NewMessage(agent.GetLocalClientID())
 		msg.Data = []byte(message)
-		if err := client.Write(msg); err != nil {
+		if err := agent.Write(msg); err != nil {
 			log.Fatalf("Error on write: %v", err)
 		}
 

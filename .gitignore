@@ -36,3 +36,4 @@ vendor
 ## bin
 bin/
 simple
+simple-tcp-broadcaster

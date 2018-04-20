@@ -9,14 +9,14 @@ import (
 
 	"os"
 
-	"github.com/mchmarny/simple-server/client"
-	"github.com/mchmarny/simple-server/server"
+	"github.com/mchmarny/simple-tcp-broadcaster/client"
+	"github.com/mchmarny/simple-tcp-broadcaster/server"
 	"github.com/urfave/cli"
 )
 
 const (
 	appName    = "simple"
-	appVersion = "0.1.0"
+	appVersion = "0.2.0"
 
 	undefinedCLIMode cliMode = 0
 	clientCLIMode    cliMode = 1
@@ -108,13 +108,13 @@ func startServer(c *cli.Context) error {
 
 func startClient(c *cli.Context) error {
 
-	// if "" then localhost
-	address := c.String("address")
-
 	port := c.Int("port")
 	if port < 1024 {
 		return errors.New("Server port must be above 1024")
 	}
+
+	// if "" then localhost
+	address := c.String("address")
 
 	go handleConsoleSignal(clientCLIMode)
 

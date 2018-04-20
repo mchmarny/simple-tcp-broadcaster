@@ -1,5 +1,5 @@
 FROM golang:1.10.1
-WORKDIR /go/src/github.com/mchmarny/simple-server/
+WORKDIR /go/src/github.com/mchmarny/simple-tcp-broadcaster
 COPY . .
 
 # restore to pinnned versions of dependancies 
@@ -10,5 +10,5 @@ RUN CGO_ENABLED=0 GOOS=linux go build . -o simple
 
 
 FROM scratch
-COPY --from=0 /go/src/github.com/mchmarny/simple-server/simple .
-ENTRYPOINT ["/simple server --port 3030"]
+COPY --from=0 /go/src/github.com/mchmarny/simple-tcp-broadcaster/simple .
+ENTRYPOINT ["/simple server start --port 5050"]

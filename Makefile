@@ -1,6 +1,6 @@
 # Go parameters
 BIN_NAME=simple
-LOCAL_PORT=5050
+LOCAL_PORT=7000
 
 all: test
 

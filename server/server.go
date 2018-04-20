@@ -12,8 +12,8 @@ var (
 	manager *ClientManager
 )
 
-// StartServerMode starts TCP server on specified port
-func StartServerMode(port int) error {
+// StartServer starts TCP server on specified port
+func StartServer(port int) error {
 	log.Println("Starting server...")
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
@@ -35,37 +35,12 @@ func StartServerMode(port int) error {
 			continue
 		}
 
-		c := commons.NewConnection(conn)
+		c := commons.NewSeverConnection(conn)
 		manager.register <- c
 		go manager.Receive(c)
 		go manager.Send(c)
 	}
 }
-
-// 	sc := make(chan bool)
-// 	deadline := time.After(conn.IdleTimeout)
-// 	for {
-// 		go func(s chan bool) {
-// 			s <- scanr.Scan()
-// 		}(sc)
-// 		select {
-// 		case <-deadline:
-// 			return nil
-// 		case scanned := <-sc:
-// 			if !scanned {
-// 				if err := scanr.Err(); err != nil {
-// 					return err
-// 				}
-// 				return nil
-// 			}
-// 			val := scanr.Text()
-// 			log.Printf("Client said: %s", val)
-// 			w.WriteString(strings.ToUpper(val) + "\n")
-// 			w.Flush()
-// 			deadline = time.After(conn.IdleTimeout)
-// 		}
-// 	}
-// }
 
 // func (srv *Server) deleteConn(conn *conn) {
 // 	defer srv.mu.Unlock()

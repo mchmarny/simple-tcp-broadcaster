@@ -20,7 +20,7 @@ func StartClient(serverAddress string) error {
 
 	log.Printf("Connected to server: %s", conn.RemoteAddr())
 
-	client := commons.NewConnection(conn)
+	client := commons.NewClientConnection(conn)
 	go client.Read()
 
 	for {

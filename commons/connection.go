@@ -4,29 +4,81 @@ import (
 	"encoding/gob"
 	"log"
 	"net"
+	"time"
 )
+
+const (
+	defaultClientTimeout = 60
+	inspectionPeriod     = 10
+
+	// UndefinedConnectionMode is default
+	UndefinedConnectionMode ConnectionMode = 0
+	// ServerConnectionMode client
+	ServerConnectionMode ConnectionMode = 1
+	// ClientConnectionMode server
+	ClientConnectionMode ConnectionMode = 2
+)
+
+// ConnectionMode indicated client or server connection mode
+type ConnectionMode int
 
 // Connection represents common client
 type Connection struct {
-	Socket  net.Conn
-	Message chan *SimpleMessage
-	//IdleTimeout   time.Duration
-	//MaxReadBuffer int64
-	Encoder *gob.Encoder
-	Decoder *gob.Decoder
+	Socket      net.Conn
+	Message     chan *SimpleMessage
+	IdleTimeout time.Duration
+	Mode        ConnectionMode
+	Encoder     *gob.Encoder
+	Decoder     *gob.Decoder
+}
+
+// NewSeverConnection creates server connection
+func NewSeverConnection(conn net.Conn) *Connection {
+	return newConnection(conn, ServerConnectionMode)
+}
+
+// NewClientConnection creates client connection
+func NewClientConnection(conn net.Conn) *Connection {
+	return newConnection(conn, ClientConnectionMode)
 }
 
 //NewConnection sets all the necessary defaults
-func NewConnection(conn net.Conn) *Connection {
-	return &Connection{
-		Socket:  conn,
-		Message: make(chan *SimpleMessage),
-		Encoder: gob.NewEncoder(conn),
-		Decoder: gob.NewDecoder(conn),
+func newConnection(conn net.Conn, mode ConnectionMode) *Connection {
+	c := &Connection{
+		Socket:      conn,
+		Mode:        mode,
+		Message:     make(chan *SimpleMessage),
+		IdleTimeout: time.Minute * time.Duration(defaultClientTimeout),
+		Encoder:     gob.NewEncoder(conn),
+		Decoder:     gob.NewDecoder(conn),
+	}
+	c.updateDeadline()
+	if mode == ServerConnectionMode {
+		c.watch()
+	}
+
+	return c
+}
+
+func (c *Connection) watch() {
+	inspectoin := time.After(time.Second * inspectionPeriod)
+	for {
+		select {
+		case <-inspectoin:
+			log.Printf("Inspected: %s", c.Socket.RemoteAddr().String())
+			inspectoin = time.After(time.Second * inspectionPeriod)
+		}
 	}
 }
 
+// updateDeadline resets the connection timeout
+func (c *Connection) updateDeadline() {
+	idleDeadline := time.Now().Add(c.IdleTimeout)
+	c.Socket.SetDeadline(idleDeadline)
+}
+
 func (c *Connection) Write(msg *SimpleMessage) {
+	c.updateDeadline()
 	if msg != nil {
 		c.Encoder.Encode(msg)
 	}

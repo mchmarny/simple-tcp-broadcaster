@@ -6,10 +6,6 @@ import (
 	"github.com/mchmarny/simple-server/commons"
 )
 
-const (
-	maxBuffer = 4096
-)
-
 // ClientManager manages server slide client connection
 type ClientManager struct {
 	clients    map[*commons.Connection]bool
@@ -38,6 +34,7 @@ func (m *ClientManager) Start() {
 				select {
 				case conn.Message <- msg:
 				default:
+					//cleanup
 					close(conn.Message)
 					delete(m.clients, conn)
 				}

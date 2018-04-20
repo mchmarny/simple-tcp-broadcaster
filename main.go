@@ -100,7 +100,7 @@ func startServer(c *cli.Context) error {
 		return errors.New("Server port must be above 1024")
 	}
 
-	return server.StartServerMode(port)
+	return server.StartServer(port)
 
 }
 

@@ -53,39 +53,24 @@ func newConnection(conn net.Conn, mode ConnectionMode) *Connection {
 		Decoder:     gob.NewDecoder(conn),
 	}
 	c.updateDeadline()
-
-	if mode == ServerConnectionMode {
-		go c.watch()
-	} else if mode == ClientConnectionMode {
-		c.Socket.(*net.TCPConn).SetKeepAlive(true)
-		c.Socket.(*net.TCPConn).SetKeepAlivePeriod(time.Second * time.Duration(inspectionPeriod))
-	}
-
 	return c
 }
 
-func (c *Connection) watch() {
-	inspectoin := time.After(time.Second * inspectionPeriod)
-	for {
-		select {
-		case <-inspectoin:
-			log.Printf("Inspected: %s", c.Socket.RemoteAddr().String())
-			inspectoin = time.After(time.Second * inspectionPeriod)
-		}
-	}
-}
+// func (c *Connection) watch() {
+// 	inspectoin := time.After(time.Second * inspectionPeriod)
+// 	for {
+// 		select {
+// 		case <-inspectoin:
+// 			log.Printf("Inspected: %s", c.Socket.RemoteAddr().String())
+// 			inspectoin = time.After(time.Second * inspectionPeriod)
+// 		}
+// 	}
+// }
 
 // updateDeadline resets the connection timeout
 func (c *Connection) updateDeadline() {
 	idleDeadline := time.Now().Add(c.IdleTimeout)
 	c.Socket.SetDeadline(idleDeadline)
-}
-
-// Disconnect sets imediate connection and closes it
-func (c *Connection) Disconnect() {
-	idleDeadline := time.Now().Add(time.Microsecond * 10)
-	c.Socket.SetDeadline(idleDeadline)
-	c.Socket.Close()
 }
 
 func (c *Connection) Write(msg *SimpleMessage) error {

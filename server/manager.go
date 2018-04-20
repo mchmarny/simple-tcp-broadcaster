@@ -39,7 +39,8 @@ func (m *ClientManager) Stop() {
 	m.stopping = true
 	for c := range m.clients {
 		log.Printf("Disconnecting: %s", c.Socket.RemoteAddr().String())
-		c.Disconnect()
+		c.Socket.Close()
+		c.Socket = nil
 	}
 }
 

@@ -5,8 +5,13 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 
 	"github.com/mchmarny/simple-server/commons"
+)
+
+const (
+	keepAliveEverySeconds = 10
 )
 
 // StartClient starts a client and connects to server
@@ -20,7 +25,12 @@ func StartClient(serverAddress string) error {
 
 	log.Printf("Connected to server: %s", conn.RemoteAddr())
 
+	tcpConn := conn.(*net.TCPConn)
+	tcpConn.SetKeepAlive(true)
+	tcpConn.SetKeepAlivePeriod(time.Second * time.Duration(keepAliveEverySeconds))
+
 	client := commons.NewClientConnection(conn)
+
 	go client.Read()
 
 	for {

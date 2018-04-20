@@ -100,6 +100,8 @@ func startServer(c *cli.Context) error {
 		return errors.New("Server port must be above 1024")
 	}
 
+	go handleConsoleSignal(serverCLIMode)
+
 	return server.StartServer(port)
 
 }
@@ -127,9 +129,11 @@ func handleConsoleSignal(mode cliMode) {
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 	log.Println(<-ch)
 	if mode == clientCLIMode {
+		log.Println("Shutting down client...")
 		// TODO: what on client?
 	} else if mode == serverCLIMode {
-		// ?TODO: close connections
+		log.Println("Shutting down server...")
+		server.StopServer()
 	} else {
 		log.Println("Error, CLI mode not set")
 	}

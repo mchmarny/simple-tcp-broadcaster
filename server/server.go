@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 
 	"github.com/mchmarny/simple-server/commons"
 )
@@ -11,6 +12,11 @@ import (
 var (
 	manager *ClientManager
 )
+
+// StopServer cleans up the connected clietns
+func StopServer() {
+	manager.Stop()
+}
 
 // StartServer starts TCP server on specified port
 func StartServer(port int) error {
@@ -24,6 +30,7 @@ func StartServer(port int) error {
 		broadcast:  make(chan *commons.SimpleMessage),
 		register:   make(chan *commons.Connection),
 		unregister: make(chan *commons.Connection),
+		mutex:      &sync.Mutex{},
 	}
 
 	go manager.Start()

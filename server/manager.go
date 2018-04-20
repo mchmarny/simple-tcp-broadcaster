@@ -2,6 +2,7 @@ package server
 
 import (
 	"log"
+	"sync"
 
 	"github.com/mchmarny/simple-server/commons"
 )
@@ -12,20 +13,48 @@ type ClientManager struct {
 	broadcast  chan *commons.SimpleMessage
 	register   chan *commons.Connection
 	unregister chan *commons.Connection
+	mutex      *sync.Mutex
+	stopping   bool
+}
+
+func (m *ClientManager) deleteConn(conn *commons.Connection) {
+	defer m.mutex.Unlock()
+	m.mutex.Lock()
+	close(conn.Message)
+	delete(m.clients, conn)
+}
+
+func (m *ClientManager) addConn(conn *commons.Connection) {
+	if !m.stopping {
+		defer m.mutex.Unlock()
+		m.mutex.Lock()
+		m.clients[conn] = true
+	}
+}
+
+// Stop cleans up all connections
+func (m *ClientManager) Stop() {
+	defer m.mutex.Unlock()
+	m.mutex.Lock()
+	m.stopping = true
+	for c := range m.clients {
+		log.Printf("Disconnecting: %s", c.Socket.RemoteAddr().String())
+		c.Disconnect()
+	}
 }
 
 // Start distributes coommands
 func (m *ClientManager) Start() {
+	m.stopping = false
 	for {
 		select {
 		case conn := <-m.register:
-			m.clients[conn] = true
+			m.addConn(conn)
 			log.Printf("New connection: %s", conn.Socket.RemoteAddr().String())
 		case conn := <-m.unregister:
 			if _, ok := m.clients[conn]; ok {
 				connID := conn.Socket.RemoteAddr().String()
-				close(conn.Message)
-				delete(m.clients, conn)
+				m.deleteConn(conn)
 				log.Printf("Connection terminated: %s", connID)
 			}
 		case msg := <-m.broadcast:
@@ -34,9 +63,7 @@ func (m *ClientManager) Start() {
 				select {
 				case conn.Message <- msg:
 				default:
-					//cleanup
-					close(conn.Message)
-					delete(m.clients, conn)
+					m.deleteConn(conn)
 				}
 			}
 		}

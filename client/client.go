@@ -27,7 +27,10 @@ func StartClient(serverAddress string) error {
 		message, _ := bufio.NewReader(os.Stdin).ReadString('\n')
 		msg := commons.NewMessage(client.Socket.LocalAddr().String())
 		msg.Data = []byte(message)
-		client.Write(msg)
+		if err := client.Write(msg); err != nil {
+			log.Fatalf("Error on write: %v", err)
+		}
+
 	}
 
 }

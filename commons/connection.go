@@ -53,8 +53,12 @@ func newConnection(conn net.Conn, mode ConnectionMode) *Connection {
 		Decoder:     gob.NewDecoder(conn),
 	}
 	c.updateDeadline()
+
 	if mode == ServerConnectionMode {
-		c.watch()
+		go c.watch()
+	} else if mode == ClientConnectionMode {
+		c.Socket.(*net.TCPConn).SetKeepAlive(true)
+		c.Socket.(*net.TCPConn).SetKeepAlivePeriod(time.Second * time.Duration(inspectionPeriod))
 	}
 
 	return c
@@ -77,17 +81,24 @@ func (c *Connection) updateDeadline() {
 	c.Socket.SetDeadline(idleDeadline)
 }
 
-func (c *Connection) Write(msg *SimpleMessage) {
+// Disconnect sets imediate connection and closes it
+func (c *Connection) Disconnect() {
+	idleDeadline := time.Now().Add(time.Microsecond * 10)
+	c.Socket.SetDeadline(idleDeadline)
+	c.Socket.Close()
+}
+
+func (c *Connection) Write(msg *SimpleMessage) error {
 	c.updateDeadline()
 	if msg != nil {
-		c.Encoder.Encode(msg)
+		return c.Encoder.Encode(msg)
 	}
+	return nil
 }
 
 // Read processes client messages
 func (c *Connection) Read() {
 	for {
-
 		msg := &SimpleMessage{}
 		err := c.Decoder.Decode(msg)
 		if err != nil {

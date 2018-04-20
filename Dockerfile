@@ -6,7 +6,7 @@ COPY . .
 RUN go get github.com/golang/dep/cmd/dep
 RUN	dep ensure
 
-RUN CGO_ENABLED=0 GOOS=linux go build . -o simple
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o simple 
 
 
 FROM scratch

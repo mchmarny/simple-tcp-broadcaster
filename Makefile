@@ -10,6 +10,9 @@ build:
 build-linux:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/$(BIN_NAME)-linux
 
+build-docker:
+	docker build -t $(BIN_NAME) .
+
 test:
 	go test -v ./...
 

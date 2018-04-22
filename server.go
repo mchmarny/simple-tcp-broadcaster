@@ -1,4 +1,4 @@
-package server
+package main
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	manager *ClientManager
+	manager *commons.ConnectionManager
 )
 
 // StopServer cleans up the connected clietns
@@ -20,19 +20,20 @@ func StopServer() {
 
 // StartServer starts TCP server on specified port
 func StartServer(port int) error {
+
 	log.Printf("Starting server on port:%d ...", port)
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return err
 	}
 
-	manager = &ClientManager{
-		port:       port,
-		clients:    make(map[*commons.Agent]bool),
-		broadcast:  make(chan *commons.SimpleMessage),
-		register:   make(chan *commons.Agent),
-		unregister: make(chan *commons.Agent),
-		mutex:      &sync.Mutex{},
+	manager = &commons.ConnectionManager{
+		Port:       port,
+		Clients:    make(map[*commons.Connection]bool),
+		Broadcast:  make(chan *commons.SimpleMessage),
+		Register:   make(chan *commons.Connection),
+		Unregister: make(chan *commons.Connection),
+		Mutex:      &sync.Mutex{},
 	}
 
 	go manager.Start()
@@ -44,8 +45,8 @@ func StartServer(port int) error {
 			continue
 		}
 
-		c := commons.NewSeverAgent(conn)
-		manager.register <- c
+		c := commons.NewSeverConnection(conn)
+		manager.Register <- c
 		go manager.Receive(c)
 		go manager.Send(c)
 	}

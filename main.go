@@ -9,8 +9,6 @@ import (
 
 	"os"
 
-	"github.com/mchmarny/simple-tcp-broadcaster/client"
-	"github.com/mchmarny/simple-tcp-broadcaster/server"
 	"github.com/urfave/cli"
 )
 
@@ -107,7 +105,7 @@ func startServer(c *cli.Context) error {
 
 	go handleConsoleSignal(serverCLIMode)
 
-	return server.StartServer(port)
+	return StartServer(port)
 
 }
 
@@ -125,7 +123,7 @@ func startClient(c *cli.Context) error {
 
 	serverAddress := fmt.Sprintf("%s:%d", address, port)
 
-	return client.StartClient(serverAddress)
+	return StartClient(serverAddress)
 }
 
 // handleConsoleSignal Waits for SIGINT and SIGTERM (HIT CTRL-C)
@@ -135,10 +133,10 @@ func handleConsoleSignal(mode cliMode) {
 	log.Println(<-ch)
 	if mode == clientCLIMode {
 		log.Println("Shutting down client...")
-		client.StopClient()
+		StopClient()
 	} else if mode == serverCLIMode {
 		log.Println("Shutting down server...")
-		server.StopServer()
+		StopServer()
 	} else {
 		log.Println("Error, CLI mode not set")
 	}

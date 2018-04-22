@@ -5,24 +5,52 @@ import (
 )
 
 const (
-	// UndefinedResponseCode is default
-	UndefinedResponseCode ResponseCode = 0
-	// SuccessResponseCode when success
-	SuccessResponseCode ResponseCode = 1
-	// ErrorResponseCode when error
-	ErrorResponseCode ResponseCode = 2
+	undefinedMessageTypeText = "Undefined"
+	// UndefinedMessageTypeCode is default
+	UndefinedMessageTypeCode MessageTypeCode = 0
+	// DataMessageTypeCode when data
+	DataMessageTypeCode MessageTypeCode = 1
+	// HeartbeatMessageTypeCode when heartbeat
+	HeartbeatMessageTypeCode MessageTypeCode = 2
 )
 
-// ResponseCode represents server response code
-type ResponseCode int
+// MessageTypeCode indicates what type of message this is
+type MessageTypeCode int
 
-// NewMessage creates a new response for specific request ID
-func NewMessage(clientID string) *SimpleMessage {
+// String returns string representation of the enum
+func (t MessageTypeCode) String() string {
+
+	names := [...]string{
+		undefinedMessageTypeText,
+		"Data",
+		"Heartbeat",
+	}
+
+	if t < DataMessageTypeCode || t > HeartbeatMessageTypeCode {
+		return undefinedMessageTypeText
+	}
+
+	return names[t]
+}
+
+// NewHeartbeatMessage creates a heartbeat message
+func NewHeartbeatMessage(clientID string) *SimpleMessage {
 	return &SimpleMessage{
 		ID:        GetUUIDv4(),
 		Source:    clientID,
 		CreatedAt: time.Now(),
-		Status:    UndefinedResponseCode,
+		Type:      HeartbeatMessageTypeCode,
+	}
+}
+
+// NewMessage creates a new response for specific request ID
+func NewMessage(clientID string, data []byte) *SimpleMessage {
+	return &SimpleMessage{
+		ID:        GetUUIDv4(),
+		Source:    clientID,
+		CreatedAt: time.Now(),
+		Type:      DataMessageTypeCode,
+		Data:      data,
 	}
 }
 
@@ -31,6 +59,6 @@ type SimpleMessage struct {
 	ID        string
 	Source    string
 	CreatedAt time.Time
-	Status    ResponseCode
+	Type      MessageTypeCode
 	Data      []byte
 }

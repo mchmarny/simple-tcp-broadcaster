@@ -62,3 +62,11 @@ type SimpleMessage struct {
 	Type      MessageTypeCode
 	Data      []byte
 }
+
+// GetDataString returns message data as string
+func (m *SimpleMessage) GetDataString() string {
+	if m.Data != nil {
+		return string(m.Data)
+	}
+	return ""
+}

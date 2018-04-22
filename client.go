@@ -33,7 +33,10 @@ func watchAgent() {
 		select {
 		case <-inspectoin:
 			if agent != nil {
-				agent.WriteHeartbeat()
+				err := agent.WriteHeartbeat()
+				if err != nil {
+					log.Fatalf("Error on heartbeat: %v", err)
+				}
 			}
 			inspectoin = time.After(inspectionPeriod)
 		}

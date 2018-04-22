@@ -85,6 +85,10 @@ func (m *ConnectionManager) Receive(c *Connection) {
 		if msg.Type == DataMessageTypeCode {
 			log.Printf("Client %s message: %+v", c.GetRemoteConnectorID(), msg)
 			m.Broadcast <- msg
+		} else if msg.Type == HeartbeatMessageTypeCode {
+			//TODO: Keep track of the connections here
+		} else {
+			log.Fatalf("Invalid message type: %+v", msg)
 		}
 	}
 }

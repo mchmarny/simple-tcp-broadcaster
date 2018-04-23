@@ -98,17 +98,6 @@ func (c *Connection) GetRemoteServerID() string {
 	return ParseID(ServerConnectionModePrefix, c.Socket.RemoteAddr().String())
 }
 
-// func (c *Connection) watch() {
-// 	inspectoin := time.After(time.Second * inspectionPeriod)
-// 	for {
-// 		select {
-// 		case <-inspectoin:
-// 			log.Printf("Inspected: %s", c.Socket.RemoteAddr().String())
-// 			inspectoin = time.After(time.Second * inspectionPeriod)
-// 		}
-// 	}
-// }
-
 // updateDeadline resets the connection timeout
 func (c *Connection) updateDeadline() {
 	idleDeadline := time.Now().Add(c.IdleTimeout)

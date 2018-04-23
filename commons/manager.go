@@ -78,22 +78,25 @@ func (m *ConnectionManager) Receive(c *Connection) {
 		msg := &SimpleMessage{}
 		err := c.Decoder.Decode(msg)
 		if err != nil {
+			log.Printf("Error on receive: %v", err)
 			m.Unregister <- c
 			c.Socket.Close()
 			break
 		}
+		// only data messages are re-broadcasted
 		if msg.Type == DataMessageTypeCode {
 			log.Printf("Client %s message: %+v", c.GetRemoteConnectorID(), msg)
 			m.Broadcast <- msg
 		} else if msg.Type == HeartbeatMessageTypeCode {
-			//TODO: Keep track of the connections here
+			c.updateDeadline()
 		} else {
+			// BUG: exit on an invalid message type
 			log.Fatalf("Invalid message type: %+v", msg)
 		}
 	}
 }
 
-// Send sends data back to the client
+// Send monitors the message channelk and sends data back to the client
 func (m *ConnectionManager) Send(c *Connection) {
 	defer c.Socket.Close()
 	for {
